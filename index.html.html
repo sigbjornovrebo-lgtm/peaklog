@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PeakLog">
+<title>PeakLog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0c10;--surface:#13161c;--surface2:#1c2028;--border:#2a2f3a;
+  --accent:#c8f04a;--accent-dim:rgba(200,240,74,0.10);
+  --snow:#e8edf5;--ice:#7eb8d4;--text:#e8edf5;--muted:#6b7585;
+  --danger:#f04a4a;--gold:#f0c84a;--strava:#fc4c02;
+}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow:hidden;}
+.app{max-width:430px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+
+/* MOUNTAIN BG */
+.mountain-bg{position:absolute;top:0;left:0;right:0;height:230px;z-index:0;overflow:hidden;}
+.mountain-bg svg{width:100%;height:100%;}
+
+/* STATUS / HEADER */
+.statusbar{position:relative;z-index:10;padding:env(safe-area-inset-top, 14px) 24px 0;display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:11px;color:rgba(232,237,245,0.45);}
+.header{position:relative;z-index:10;padding:8px 20px 14px;}
+.app-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:3px;color:var(--snow);line-height:1;text-shadow:0 2px 30px rgba(0,0,0,0.9);}
+.app-title span{color:var(--accent);}
+.header-sub{font-size:11px;color:var(--ice);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.5px;}
+
+/* SCREENS */
+.screens{flex:1;overflow:hidden;position:relative;z-index:5;}
+.screen{display:none;height:100%;overflow-y:auto;padding:0 16px;padding-bottom:calc(90px + env(safe-area-inset-bottom, 0px));}
+.screen.active{display:block;}
+.screen::-webkit-scrollbar{display:none;}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:14px 4px 8px;}
+
+/* BOARD */
+.board-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:20px;padding:16px;margin-bottom:12px;}
+.board-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.board-subtitle{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;}
+.beastmaker-svg{width:100%;cursor:pointer;touch-action:manipulation;}
+.grip-shape{transition:fill 0.2s;}
+.grip-active .grip-shape{fill:#c8f04a !important;}
+.grip-active .grip-label{fill:#000 !important;font-weight:bold;}
+.grip-label{font-family:'DM Mono',monospace;font-size:8.5px;fill:#6b7585;transition:fill 0.2s;pointer-events:none;}
+
+/* GRIP CARDS */
+.grip-card{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:12px;}
+.grip-card:hover{border-color:var(--accent);}
+.grip-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+.grip-card-name{font-size:14px;font-weight:500;}
+.grip-card-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ADD GRIP */
+.add-grip-row{display:flex;gap:8px;margin-bottom:10px;}
+.add-grip-row input{flex:1;background:var(--surface2);border:0.5px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;}
+.add-grip-row input:focus{outline:none;border-color:var(--accent);}
+.add-grip-row button{padding:10px 18px;background:var(--accent);border:none;border-radius:12px;color:#000;font-size:20px;font-weight:700;cursor:pointer;}
+
+/* BUTTONS */
+.primary-btn{width:100%;padding:16px;background:var(--accent);border:none;border-radius:16px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;color:#000;cursor:pointer;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;}
+.primary-btn:disabled{opacity:0.25;cursor:not-allowed;}
+.primary-btn:not(:disabled):active{opacity:0.85;}
+
+/* WORKOUT */
+.workout-header{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:14px 18px;margin-bottom:10px;}
+.workout-grip-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--snow);}
+.workout-weight{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);margin-top:2px;}
+.workout-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+
+.prog-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:10px;}
+.prog-label{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px;}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;}
+.prog-next{font-size:11px;color:#4af09a;margin-top:6px;font-family:'DM Mono',monospace;}
+
+.sets-container{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.set-row{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.15s;-webkit-user-select:none;user-select:none;}
+.set-row:active{background:var(--surface2);}
+.set-row.done{background:var(--accent-dim);border-color:var(--accent);}
+.set-row.skipped{opacity:0.35;}
+.set-row-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);min-width:32px;}
+.set-row-reps{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--text);line-height:1;}
+.set-row.done .set-row-reps{color:var(--accent);}
+.set-row-target{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-left:2px;}
+.set-row-check{margin-left:auto;width:30px;height:30px;border-radius:50%;border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);background:var(--surface2);flex-shrink:0;}
+.set-row.done .set-row-check{background:var(--accent);color:#000;border-color:var(--accent);}
+.set-row-grip{font-family:'DM Mono',monospace;font-size:10px;color:var(--ice);margin-left:auto;}
+
+/* FULLSCREEN REP COUNTER */
+.rep-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation;}
+.rep-screen.show{display:flex;}
+.rep-cancel{position:absolute;top:calc(env(safe-area-inset-top,20px) + 16px);left:20px;background:none;border:0.5px solid var(--border);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.rs-grip{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--ice);margin-bottom:4px;}
+.rs-info{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:50px;}
+.rs-counter{font-family:'Bebas Neue',sans-serif;font-size:180px;line-height:1;color:var(--accent);text-shadow:0 0 80px rgba(200,240,74,0.25);transition:transform 0.08s,color 0.08s;-webkit-user-select:none;user-select:none;cursor:pointer;}
+.rs-counter.flash{transform:scale(1.07);color:#fff;}
+.rs-hint{font-size:13px;color:var(--muted);margin-top:36px;font-family:'DM Mono',monospace;letter-spacing:1px;}
+.rs-target{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);margin-top:14px;}
+.rs-target span{color:var(--accent);}
+.rs-done-btn{margin-top:48px;padding:16px 52px;background:var(--accent);border:none;border-radius:16px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:500;color:#000;cursor:pointer;}
+.rs-skip-btn{margin-top:12px;padding:10px 40px;background:none;border:0.5px solid var(--border);border-radius:14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--muted);cursor:pointer;}
+
+/* HISTORY */
+.history-card{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;}
+.history-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.history-grip{font-size:14px;font-weight:500;margin-bottom:6px;}
+.history-sets{display:flex;gap:6px;flex-wrap:wrap;}
+.history-pill{background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:3px 8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);}
+.strava-badge{background:rgba(252,76,2,0.12);border:0.5px solid var(--strava);border-radius:8px;padding:2px 8px;font-size:10px;color:var(--strava);font-family:'DM Mono',monospace;}
+.sync-btn{background:none;border:0.5px solid var(--border);border-radius:10px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;}
+.sync-btn:active{border-color:var(--strava);color:var(--strava);}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:14px;}
+.stat-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--snow);line-height:1;}
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;}
+.rep-pill{background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);}
+.rep-pill.at-max{color:var(--gold);border-color:var(--gold);}
+
+/* MOTIVATION MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;display:none;align-items:flex-end;}
+.modal-overlay.show{display:flex;}
+.modal-sheet{background:var(--surface);border-radius:28px 28px 0 0;border:0.5px solid var(--border);width:100%;padding:28px 24px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));text-align:center;}
+.modal-peak{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:3px;color:var(--accent);margin-bottom:4px;}
+.modal-quote{font-size:16px;font-weight:300;color:var(--snow);line-height:1.6;margin-bottom:20px;}
+.modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px;}
+.modal-stat{background:var(--surface2);border-radius:12px;padding:12px;}
+.modal-stat-val{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);}
+.modal-stat-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btn{flex:1;padding:14px;border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;}
+.modal-btn.secondary{background:var(--surface2);color:var(--text);}
+.modal-btn.primary{background:var(--accent);color:#000;}
+
+/* WEIGHT MODAL */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:600;display:none;align-items:flex-end;}
+.sheet-overlay.show{display:flex;}
+.sheet{background:var(--surface);border-radius:24px 24px 0 0;border:0.5px solid var(--border);width:100%;padding:20px 20px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));max-height:65vh;overflow-y:auto;}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.weight-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;}
+.weight-opt{padding:12px 6px;background:var(--surface2);border:0.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;text-align:center;}
+.weight-opt:active,.weight-opt.sel{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(10,12,16,0.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:0.5px solid var(--border);display:flex;justify-content:space-around;padding:10px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:50;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;opacity:0.38;transition:opacity 0.15s;background:none;border:none;color:var(--text);font-family:'DM Sans',sans-serif;padding:0 12px;}
+.nav-item.active{opacity:1;}
+.nav-item i{font-size:23px;}
+.nav-item.active i{color:var(--accent);}
+.nav-item .nav-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;}
+.nav-item.active .nav-label{color:var(--accent);}
+
+.toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:0.5px solid var(--border);border-radius:20px;padding:10px 20px;font-size:13px;color:var(--text);opacity:0;transition:all 0.3s;z-index:999;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Mountain background -->
+  <div class="mountain-bg">
+    <svg viewBox="0 0 430 230" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#080e1a"/>
+          <stop offset="100%" stop-color="#0a0c10"/>
+        </linearGradient>
+      </defs>
+      <rect width="430" height="230" fill="url(#sky)"/>
+      <polygon points="0,190 70,85 130,145 200,55 260,125 330,45 395,110 430,85 430,230 0,230" fill="#111520" opacity="0.95"/>
+      <polygon points="0,210 55,140 110,170 175,95 235,155 300,72 360,135 430,105 430,230 0,230" fill="#181e2c" opacity="0.95"/>
+      <polygon points="195,57 200,40 205,57" fill="#cddaea" opacity="0.75"/>
+      <polygon points="326,47 330,29 334,47" fill="#ddeaf5" opacity="0.85"/>
+      <polygon points="67,87 71,72 75,87" fill="#bccedd" opacity="0.5"/>
+      <circle cx="35" cy="22" r="0.9" fill="#e8edf5" opacity="0.55"/>
+      <circle cx="95" cy="12" r="1.1" fill="#e8edf5" opacity="0.45"/>
+      <circle cx="165" cy="28" r="0.7" fill="#e8edf5" opacity="0.65"/>
+      <circle cx="245" cy="10" r="1.0" fill="#e8edf5" opacity="0.40"/>
+      <circle cx="340" cy="20" r="0.9" fill="#e8edf5" opacity="0.60"/>
+      <circle cx="400" cy="8" r="0.7" fill="#e8edf5" opacity="0.45"/>
+      <circle cx="120" cy="42" r="0.6" fill="#7eb8d4" opacity="0.45"/>
+      <circle cx="290" cy="32" r="0.8" fill="#7eb8d4" opacity="0.38"/>
+    </svg>
+  </div>
+
+  <div class="statusbar">
+    <span id="statusbar-time">9:41</span>
+    <span style="letter-spacing:2px;">● ● ●</span>
+  </div>
+
+  <div class="header">
+    <div class="app-title">PEAK<span>LOG</span></div>
+    <div class="header-sub">BEASTMAKER 2000 · KLATRESTYRKE</div>
+  </div>
+
+  <div class="screens">
+
+    <!-- GREP-SCREEN -->
+    <div class="screen active" id="screen-board">
+      <div class="section-label">Beastmaker 2000 — velg grep</div>
+      <div class="board-wrap">
+        <div class="board-title">Trykk på grep for å aktivere</div>
+        <div class="board-subtitle">Grønne = valgt for dagens økt</div>
+        <svg class="beastmaker-svg" viewBox="0 0 350 168" xmlns="http://www.w3.org/2000/svg" id="bm-svg">
+          <!-- Board body -->
+          <rect x="4" y="18" width="342" height="140" rx="9" fill="#181e28" stroke="#2a2f3a" stroke-width="0.5"/>
+          <!-- Mount holes -->
+          <circle cx="18" cy="32" r="5" fill="#0d1018"/><circle cx="332" cy="32" r="5" fill="#0d1018"/>
+          <circle cx="18" cy="148" r="5" fill="#0d1018"/><circle cx="332" cy="148" r="5" fill="#0d1018"/>
+
+          <!-- TOP ROW: Slopers -->
+          <g id="g-sloper-l" onclick="toggleGrip('Sloper V','sloper-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="32" y="26" width="56" height="24" rx="5" fill="#252b38"/>
+            <text class="grip-label" x="60" y="41" text-anchor="middle">Sloper V</text>
+          </g>
+          <g id="g-sloper-r" onclick="toggleGrip('Sloper H','sloper-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="262" y="26" width="56" height="24" rx="5" fill="#252b38"/>
+            <text class="grip-label" x="290" y="41" text-anchor="middle">Sloper H</text>
+          </g>
+
+          <!-- 4-finger pockets top center -->
+          <g id="g-4f-l" onclick="toggleGrip('4-finger L','4f-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="106" y="26" width="42" height="20" rx="4" fill="#252b38"/>
+            <text class="grip-label" x="127" y="40" text-anchor="middle">4-finger L</text>
+          </g>
+          <g id="g-4f-r" onclick="toggleGrip('4-finger R','4f-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="202" y="26" width="42" height="20" rx="4" fill="#252b38"/>
+            <text class="grip-label" x="223" y="40" text-anchor="middle">4-finger R</text>
+          </g>
+
+          <!-- MID ROW: 3-finger -->
+          <g id="g-3f-l" onclick="toggleGrip('3-finger L','3f-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="32" y="60" width="40" height="17" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="52" y="72" text-anchor="middle">3-finger L</text>
+          </g>
+          <g id="g-3f-r" onclick="toggleGrip('3-finger R','3f-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="278" y="60" width="40" height="17" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="298" y="72" text-anchor="middle">3-finger R</text>
+          </g>
+
+          <!-- 2-finger -->
+          <g id="g-2f-l" onclick="toggleGrip('2-finger L','2f-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="84" y="60" width="34" height="14" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="101" y="71" text-anchor="middle">2-finger L</text>
+          </g>
+          <g id="g-2f-r" onclick="toggleGrip('2-finger R','2f-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="232" y="60" width="34" height="14" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="249" y="71" text-anchor="middle">2-finger R</text>
+          </g>
+
+          <!-- Crimp center -->
+          <g id="g-crimp-l" onclick="toggleGrip('Crimp L','crimp-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="130" y="58" width="32" height="11" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="146" y="67" text-anchor="middle">Crimp L</text>
+          </g>
+          <g id="g-crimp-r" onclick="toggleGrip('Crimp R','crimp-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="188" y="58" width="32" height="11" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="204" y="67" text-anchor="middle">Crimp R</text>
+          </g>
+
+          <!-- Pinch -->
+          <g id="g-pinch-l" onclick="toggleGrip('Pinch L','pinch-l')" style="cursor:pointer;">
+            <ellipse class="grip-shape" cx="56" cy="100" rx="20" ry="10" fill="#252b38"/>
+            <text class="grip-label" x="56" y="103" text-anchor="middle">Pinch L</text>
+          </g>
+          <g id="g-pinch-r" onclick="toggleGrip('Pinch R','pinch-r')" style="cursor:pointer;">
+            <ellipse class="grip-shape" cx="294" cy="100" rx="20" ry="10" fill="#252b38"/>
+            <text class="grip-label" x="294" y="103" text-anchor="middle">Pinch R</text>
+          </g>
+
+          <!-- Monos center -->
+          <g id="g-mono-l" onclick="toggleGrip('Mono L','mono-l')" style="cursor:pointer;">
+            <circle class="grip-shape" cx="154" cy="96" r="11" fill="#252b38"/>
+            <text class="grip-label" x="154" y="99" text-anchor="middle">Mono L</text>
+          </g>
+          <g id="g-mono-r" onclick="toggleGrip('Mono R','mono-r')" style="cursor:pointer;">
+            <circle class="grip-shape" cx="196" cy="96" r="11" fill="#252b38"/>
+            <text class="grip-label" x="196" y="99" text-anchor="middle">Mono R</text>
+          </g>
+
+          <!-- BOTTOM ROW: edges -->
+          <g id="g-edge20-l" onclick="toggleGrip('20mm edge L','edge20-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="32" y="128" width="58" height="22" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="61" y="142" text-anchor="middle">20mm L</text>
+          </g>
+          <g id="g-edge20-r" onclick="toggleGrip('20mm edge R','edge20-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="260" y="128" width="58" height="22" rx="3" fill="#252b38"/>
+            <text class="grip-label" x="289" y="142" text-anchor="middle">20mm R</text>
+          </g>
+          <g id="g-edge14-l" onclick="toggleGrip('14mm edge L','edge14-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="104" y="130" width="44" height="18" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="126" y="142" text-anchor="middle">14mm L</text>
+          </g>
+          <g id="g-edge14-r" onclick="toggleGrip('14mm edge R','edge14-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="202" y="130" width="44" height="18" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="224" y="142" text-anchor="middle">14mm R</text>
+          </g>
+
+          <!-- Half-crimp -->
+          <g id="g-hcrimp-l" onclick="toggleGrip('Half-crimp L','hcrimp-l')" style="cursor:pointer;">
+            <rect class="grip-shape" x="130" y="108" width="32" height="12" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="146" y="118" text-anchor="middle">H-crimp L</text>
+          </g>
+          <g id="g-hcrimp-r" onclick="toggleGrip('Half-crimp R','hcrimp-r')" style="cursor:pointer;">
+            <rect class="grip-shape" x="188" y="108" width="32" height="12" rx="2" fill="#252b38"/>
+            <text class="grip-label" x="204" y="118" text-anchor="middle">H-crimp R</text>
+          </g>
+
+          <text x="175" y="97" text-anchor="middle" font-family="DM Mono,monospace" font-size="7" fill="#2a3040">ALT</text>
+          <text x="175" y="162" text-anchor="middle" font-family="DM Mono,monospace" font-size="7.5" fill="#2e3545">BEASTMAKER 2000</text>
+        </svg>
+      </div>
+
+      <div class="section-label">Egne grep</div>
+      <div class="add-grip-row">
+        <input type="text" id="custom-input" placeholder="Legg til eget grep..." maxlength="28"/>
+        <button onclick="addCustomGrip()">+</button>
+      </div>
+      <div id="custom-list"></div>
+
+      <div class="section-label" id="sel-label" style="display:none;">Valgte grep — trykk for å sette vekt</div>
+      <div id="selected-list"></div>
+
+      <button class="primary-btn" id="start-btn" disabled onclick="startSession()">
+        <i class="ti ti-activity"></i> Start økt
+      </button>
+      <div style="height:10px;"></div>
+    </div>
+
+    <!-- WORKOUT SCREEN -->
+    <div class="screen" id="screen-workout">
+      <div class="workout-header">
+        <div class="workout-grip-name" id="wk-name">—</div>
+        <div class="workout-weight" id="wk-weight">Kroppsvekt + — kg</div>
+        <div class="workout-meta" id="wk-meta"></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-label"><span>Mot neste nivå</span><span id="prog-right"></span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-next" id="prog-next"></div>
+      </div>
+      <div class="sets-container" id="sets-container"></div>
+      <button class="primary-btn" id="finish-wk-btn" disabled onclick="finishGrip()">
+        <i class="ti ti-check"></i> Ferdig med grep
+      </button>
+      <div style="height:10px;"></div>
+    </div>
+
+    <!-- HISTORY SCREEN -->
+    <div class="screen" id="screen-history">
+      <div class="section-label">Logg</div>
+      <div id="history-list"></div>
+      <div style="height:10px;"></div>
+    </div>
+
+    <!-- STATS SCREEN -->
+    <div class="screen" id="screen-stats">
+      <div class="section-label">Oversikt</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Totale økter</div><div class="stat-value" id="st-tot">0</div></div>
+        <div class="stat-card"><div class="stat-label">Denne uken</div><div class="stat-value" id="st-week">0</div></div>
+        <div class="stat-card"><div class="stat-label">Grep trent</div><div class="stat-value" id="st-grips">0</div></div>
+        <div class="stat-card"><div class="stat-label">Strava-sync</div><div class="stat-value" id="st-strava">0</div></div>
+      </div>
+      <div class="section-label">Progresjon per grep</div>
+      <div id="grip-prog-list"></div>
+      <div style="height:10px;"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="nav('board',this)"><i class="ti ti-hand-rock"></i><span class="nav-label">Grep</span></button>
+    <button class="nav-item" onclick="nav('workout',this)"><i class="ti ti-barbell"></i><span class="nav-label">Økt</span></button>
+    <button class="nav-item" onclick="nav('history',this)"><i class="ti ti-calendar"></i><span class="nav-label">Logg</span></button>
+    <button class="nav-item" onclick="nav('stats',this)"><i class="ti ti-chart-line"></i><span class="nav-label">Stats</span></button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- FULLSCREEN REP COUNTER -->
+<div class="rep-screen" id="rep-screen">
+  <button class="rep-cancel" onclick="cancelRep()">Avbryt</button>
+  <div class="rs-grip" id="rs-grip"></div>
+  <div class="rs-info" id="rs-info"></div>
+  <div class="rs-counter" id="rs-counter" onclick="tapRep()">0</div>
+  <div class="rs-hint">TRYKK FOR Å TELLE REP</div>
+  <div class="rs-target">Mål: <span id="rs-target">—</span> reps</div>
+  <button class="rs-done-btn" onclick="confirmSet()">Sett ferdig ✓</button>
+  <button class="rs-skip-btn" onclick="skipSet()">Hopp over settet</button>
+</div>
+
+<!-- MOTIVATION MODAL -->
+<div class="modal-overlay" id="motive-modal">
+  <div class="modal-sheet">
+    <div class="modal-peak">TOPPEN</div>
+    <div class="modal-quote" id="motive-quote"></div>
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="modal-stat-val" id="m-reps">0</div><div class="modal-stat-label">Totale reps</div></div>
+      <div class="modal-stat"><div class="modal-stat-val" id="m-sets">0</div><div class="modal-stat-label">Sett fullført</div></div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeMotiveModal()">Lukk</button>
+      <button class="modal-btn primary" onclick="syncLastSession()"><i class="ti ti-upload"></i> Strava</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT MODAL -->
+<div class="sheet-overlay" id="weight-sheet" onclick="closeWeightSheet(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="font-size:15px;font-weight:500;" id="weight-sheet-title">Tilleggsvekt</div>
+    <div class="weight-grid" id="weight-grid"></div>
+  </div>
+</div>
+
+<script>
+const DAYS=['søn','man','tir','ons','tor','fre','lør'];
+const MONTHS=['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+const QUOTES=[
+  "Vegg for vegg. Grep for grep. Du klatrer høyere enn du tror.",
+  "Fjell respekterer ikke ønsker — bare arbeid. Bra jobba.",
+  "Hendene husker det hodet glemmer. Du ble sterkere i dag.",
+  "Hver rep er en meter nærmere toppen.",
+  "Det er ikke fingerstyrken som tar deg opp. Det er viljen til å komme tilbake.",
+  "Store ruter begynner med små grep. Fortsett.",
+  "Smerten i hendene er kvittensen på arbeidet.",
+  "Klatring er stillhet i bevegelse. Du eier det.",
+];
+const MAX_REPS = 5;
+const DEFAULT_SETS = [4, 3, 2, 2];
+
+// DB
+let db = { gripProg: {}, sessions: [], customGrips: [] };
+function loadDB(){ try{ const s=localStorage.getItem('peaklog2'); if(s) db=JSON.parse(s); }catch(e){} }
+function saveDB(){ try{ localStorage.setItem('peaklog2', JSON.stringify(db)); }catch(e){} }
+loadDB();
+
+// State
+let activeSvg = new Set();
+let selectedGrips = [];
+let currentSession = null;
+let currentGripIdx = 0;
+let currentSetIdx = 0;
+let currentReps = 0;
+let weightTarget = null;
+
+// Clock
+function tick(){ const n=new Date(); document.getElementById('statusbar-time').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0'); }
+tick(); setInterval(tick,15000);
+
+// SVG grip toggle
+function toggleGrip(name, svgId){
+  const el = document.getElementById('g-'+svgId);
+  if(!el) return;
+  if(activeSvg.has(svgId)){
+    activeSvg.delete(svgId);
+    el.classList.remove('grip-active');
+    selectedGrips = selectedGrips.filter(g=>g!==name);
+  } else {
+    activeSvg.add(svgId);
+    el.classList.add('grip-active');
+    if(!selectedGrips.includes(name)) selectedGrips.push(name);
+  }
+  renderSelected();
+}
+
+// Custom grips
+function addCustomGrip(){
+  const inp = document.getElementById('custom-input');
+  const name = inp.value.trim();
+  if(!name) return;
+  if(!db.customGrips.includes(name)) db.customGrips.push(name);
+  if(!selectedGrips.includes(name)) selectedGrips.push(name);
+  inp.value='';
+  saveDB();
+  renderCustom();
+  renderSelected();
+}
+
+function renderCustom(){
+  const c = document.getElementById('custom-list');
+  c.innerHTML = db.customGrips.map(g=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <button onclick="toggleCustom('${g.replace(/'/g,"\\'")}')}" style="flex:1;padding:10px 14px;background:${selectedGrips.includes(g)?'var(--accent-dim)':'var(--surface)'};border:0.5px solid ${selectedGrips.includes(g)?'var(--accent)':'var(--border)'};border-radius:12px;color:${selectedGrips.includes(g)?'var(--accent)':'var(--text)'};font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-align:left;">${g}</button>
+      <button onclick="removeCustom('${g.replace(/'/g,"\\'")}')}" style="background:none;border:0.5px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;">×</button>
+    </div>
+  `).join('');
+}
+
+function toggleCustom(name){
+  if(selectedGrips.includes(name)) selectedGrips=selectedGrips.filter(g=>g!==name);
+  else selectedGrips.push(name);
+  renderCustom(); renderSelected();
+}
+function removeCustom(name){
+  db.customGrips=db.customGrips.filter(g=>g!==name);
+  selectedGrips=selectedGrips.filter(g=>g!==name);
+  saveDB(); renderCustom(); renderSelected();
+}
+
+function renderSelected(){
+  const lbl=document.getElementById('sel-label');
+  const c=document.getElementById('selected-list');
+  const btn=document.getElementById('start-btn');
+  if(!selectedGrips.length){ lbl.style.display='none'; c.innerHTML=''; btn.disabled=true; return; }
+  lbl.style.display='block'; btn.disabled=false;
+  c.innerHTML=selectedGrips.map(name=>{
+    const p=db.gripProg[name]||{weight:0,sets:[...DEFAULT_SETS]};
+    return `<div class="grip-card selected" onclick="openWeightSheet('${name.replace(/'/g,"\\'")}')">
+      <div style="flex:1;">
+        <div class="grip-card-name">${name}</div>
+        <div class="grip-card-meta">+${p.weight}kg · ${p.sets.join('-')} reps</div>
+      </div>
+      <i class="ti ti-weight" style="color:var(--muted);font-size:18px;"></i>
+    </div>`;
+  }).join('');
+}
+
+// Weight sheet
+function openWeightSheet(name){
+  weightTarget=name;
+  const cur=(db.gripProg[name]||{weight:0}).weight;
+  document.getElementById('weight-sheet-title').textContent='Vekt for '+name;
+  const g=document.getElementById('weight-grid');
+  const opts=[0,2.5,5,7.5,10,12.5,15,17.5,20,22.5,25,27.5,30,35,40];
+  g.innerHTML=opts.map(w=>`<button class="weight-opt${w===cur?' sel':''}" onclick="setWeight(${w})">${w}kg</button>`).join('');
+  document.getElementById('weight-sheet').classList.add('show');
+}
+function setWeight(w){
+  if(!db.gripProg[weightTarget]) db.gripProg[weightTarget]={weight:0,sets:[...DEFAULT_SETS],history:[]};
+  db.gripProg[weightTarget].weight=w;
+  saveDB(); closeWeightSheet(); renderSelected();
+}
+function closeWeightSheet(e){
+  if(e&&e.target!==document.getElementById('weight-sheet')) return;
+  document.getElementById('weight-sheet').classList.remove('show');
+}
+
+// SESSION
+function startSession(){
+  if(!selectedGrips.length) return;
+  currentSession={date:new Date().toISOString(), grips:[]};
+  currentGripIdx=0;
+  nav('workout', document.querySelectorAll('.nav-item')[1]);
+  loadGrip(selectedGrips[0]);
+}
+
+function loadGrip(name){
+  if(!db.gripProg[name]) db.gripProg[name]={weight:0,sets:[...DEFAULT_SETS],history:[]};
+  const p=db.gripProg[name];
+  document.getElementById('wk-name').textContent=name;
+  document.getElementById('wk-weight').textContent='Kroppsvekt + '+p.weight+'kg';
+  document.getElementById('wk-meta').textContent='Grep '+(currentGripIdx+1)+' av '+selectedGrips.length;
+  currentSession._sets = p.sets.map(r=>({target:r, done:0, completed:false, skipped:false}));
+  currentSetIdx=0;
+  renderSets();
+  updateProg(name);
+}
+
+function renderSets(){
+  const name=selectedGrips[currentGripIdx];
+  const sets=currentSession._sets;
+  const c=document.getElementById('sets-container');
+  c.innerHTML=sets.map((s,i)=>`
+    <div class="set-row${s.completed?' done':''}${s.skipped?' skipped':''}"
+      onclick="${(s.completed||s.skipped)?'':'openRepScreen('+i+')'}" >
+      <div class="set-row-num">SET ${i+1}</div>
+      <div class="set-row-reps">${s.completed?s.done:(s.skipped?'–':s.target)}</div>
+      <div class="set-row-target">${s.completed?' / '+s.target:''}</div>
+      <div class="set-row-grip">${name}</div>
+      <div class="set-row-check">${s.completed?'✓':(s.skipped?'–':(i===currentSetIdx?'▶':'○'))}</div>
+    </div>
+  `).join('');
+  const allDone=sets.every(s=>s.completed||s.skipped);
+  document.getElementById('finish-wk-btn').disabled=!allDone;
+}
+
+function updateProg(name){
+  const p=db.gripProg[name];
+  const total=p.sets.reduce((a,b)=>a+b,0);
+  const max=p.sets.length*MAX_REPS;
+  const pct=Math.round(total/max*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-right').textContent=p.sets.join('-');
+  const isTop=p.sets.every(s=>s>=MAX_REPS);
+  document.getElementById('prog-next').textContent=isTop?'🏆 Øk vekten neste økt!':'Neste: '+nextSets(p.sets).join('-');
+}
+
+function nextSets(sets){
+  const n=[...sets];
+  for(let i=0;i<n.length;i++){ if(n[i]<MAX_REPS){n[i]++;break;} }
+  return n;
+}
+
+// REP SCREEN
+function openRepScreen(idx){
+  currentSetIdx=idx;
+  currentReps=0;
+  const name=selectedGrips[currentGripIdx];
+  const s=currentSession._sets[idx];
+  document.getElementById('rs-grip').textContent=name;
+  document.getElementById('rs-info').textContent='Set '+(idx+1)+' · +'+(db.gripProg[name]||{weight:0}).weight+'kg';
+  document.getElementById('rs-target').textContent=s.target;
+  document.getElementById('rs-counter').textContent='0';
+  document.getElementById('rep-screen').classList.add('show');
+}
+
+function tapRep(){
+  currentReps++;
+  const el=document.getElementById('rs-counter');
+  el.textContent=currentReps;
+  el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'),100);
+}
+
+function confirmSet(){
+  const s=currentSession._sets[currentSetIdx];
+  s.done=currentReps; s.completed=true;
+  document.getElementById('rep-screen').classList.remove('show');
+  // advance to next undone set
+  const sets=currentSession._sets;
+  for(let i=0;i<sets.length;i++){ if(!sets[i].completed&&!sets[i].skipped){currentSetIdx=i;break;} }
+  renderSets();
+}
+
+function skipSet(){
+  currentSession._sets[currentSetIdx].skipped=true;
+  document.getElementById('rep-screen').classList.remove('show');
+  renderSets();
+}
+function cancelRep(){ document.getElementById('rep-screen').classList.remove('show'); }
+
+// FINISH GRIP
+function finishGrip(){
+  const name=selectedGrips[currentGripIdx];
+  const sets=currentSession._sets;
+  const p=db.gripProg[name];
+  // Only progress if ALL completed (none skipped)
+  const allCompleted=sets.every(s=>s.completed);
+  if(allCompleted && !p.sets.every(s=>s>=MAX_REPS)){
+    p.sets=nextSets(p.sets);
+  }
+  currentSession.grips.push({name, weight:p.weight, sets:sets.map(s=>s.done), stravaSync:false});
+  p.history=p.history||[];
+  p.history.push({date:currentSession.date, sets:sets.map(s=>s.done), weight:p.weight});
+  saveDB();
+
+  currentGripIdx++;
+  if(currentGripIdx<selectedGrips.length){
+    loadGrip(selectedGrips[currentGripIdx]);
+    showToast('Neste: '+selectedGrips[currentGripIdx]);
+  } else {
+    db.sessions.push(currentSession);
+    saveDB();
+    showMotivation();
+    resetBoard();
+  }
+}
+
+function resetBoard(){
+  activeSvg.clear();
+  document.querySelectorAll('[id^="g-"]').forEach(el=>el.classList.remove('grip-active'));
+  selectedGrips=[];
+  renderSelected(); renderCustom();
+}
+
+// MOTIVATION
+function showMotivation(){
+  const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  document.getElementById('motive-quote').textContent=q;
+  const totalReps=currentSession.grips.reduce((a,g)=>a+g.sets.reduce((b,r)=>b+r,0),0);
+  const totalSets=currentSession.grips.reduce((a,g)=>a+g.sets.length,0);
+  document.getElementById('m-reps').textContent=totalReps;
+  document.getElementById('m-sets').textContent=totalSets;
+  document.getElementById('motive-modal').classList.add('show');
+  renderHistory(); renderStats();
+}
+function closeMotiveModal(){
+  document.getElementById('motive-modal').classList.remove('show');
+  nav('board', document.querySelectorAll('.nav-item')[0]);
+}
+function syncLastSession(){
+  const sess=db.sessions[db.sessions.length-1];
+  if(!sess) return;
+  sess.grips.forEach(g=>g.stravaSync=true);
+  saveDB();
+  const desc=sess.grips.map(g=>`${g.name} (+${g.weight}kg): ${g.sets.join('-')}`).join(' | ');
+  const url='https://www.strava.com/activities/new?type=WeightTraining&private=1&name='+encodeURIComponent('Beastmaker-økt')+'&description='+encodeURIComponent(desc);
+  window.open(url,'_blank');
+  closeMotiveModal();
+  showToast('✅ Sendt til Strava!');
+  renderHistory();
+}
+
+// HISTORY
+function renderHistory(){
+  const c=document.getElementById('history-list');
+  if(!db.sessions||!db.sessions.length){ c.innerHTML='<div style="text-align:center;color:var(--muted);font-size:14px;padding:40px 0;">Ingen økter ennå</div>'; return; }
+  c.innerHTML=[...db.sessions].reverse().map((sess,ri)=>{
+    const realIdx=db.sessions.length-1-ri;
+    const d=new Date(sess.date);
+    const ds=DAYS[d.getDay()]+' '+d.getDate()+'. '+MONTHS[d.getMonth()]+' '+d.getFullYear();
+    const allSynced=sess.grips.every(g=>g.stravaSync);
+    return `<div class="history-card">
+      <div class="history-date">${ds}
+        ${allSynced
+          ?'<span class="strava-badge">✓ Strava</span>'
+          :`<button class="sync-btn" onclick="syncSession(${realIdx})"><i class="ti ti-upload"></i> Synk</button>`}
+      </div>
+      ${sess.grips.map(g=>`
+        <div class="history-grip">${g.name} <span style="color:var(--accent);font-family:'DM Mono',monospace;font-size:12px;">+${g.weight}kg</span></div>
+        <div class="history-sets">${g.sets.map((r,i)=>`<span class="history-pill">S${i+1}: ${r}</span>`).join('')}</div>
+      `).join('<div style="height:8px;"></div>')}
+    </div>`;
+  }).join('');
+}
+
+function syncSession(idx){
+  const sess=db.sessions[idx];
+  if(!sess||sess.grips.every(g=>g.stravaSync)){ showToast('Allerede synca!'); return; }
+  sess.grips.forEach(g=>g.stravaSync=true);
+  saveDB();
+  const desc=sess.grips.map(g=>`${g.name} (+${g.weight}kg): ${g.sets.join('-')}`).join(' | ');
+  const url='https://www.strava.com/activities/new?type=WeightTraining&private=1&name='+encodeURIComponent('Beastmaker-økt')+'&description='+encodeURIComponent(desc);
+  window.open(url,'_blank');
+  showToast('✅ Synca til Strava');
+  renderHistory();
+}
+
+// STATS
+function renderStats(){
+  const tot=db.sessions.length;
+  const weekAgo=Date.now()-7*24*60*60*1000;
+  const week=db.sessions.filter(s=>new Date(s.date).getTime()>weekAgo).length;
+  const grips=Object.keys(db.gripProg).length;
+  const synced=db.sessions.filter(s=>s.grips.some(g=>g.stravaSync)).length;
+  document.getElementById('st-tot').textContent=tot;
+  document.getElementById('st-week').textContent=week;
+  document.getElementById('st-grips').textContent=grips;
+  document.getElementById('st-strava').textContent=synced;
+  const c=document.getElementById('grip-prog-list');
+  if(!grips){ c.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">Ingen grep registrert ennå.</div>'; return; }
+  c.innerHTML=Object.entries(db.gripProg).map(([name,p])=>{
+    const isTop=p.sets.every(s=>s>=MAX_REPS);
+    return `<div class="chart-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:14px;font-weight:500;">${name}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">+${p.weight}kg</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${p.sets.map((r,i)=>`<span class="rep-pill${r>=MAX_REPS?' at-max':''}">S${i+1}: ${r}</span>`).join('')}
+      </div>
+      ${isTop?'<div style="font-size:11px;color:var(--gold);margin-top:8px;font-family:\'DM Mono\',monospace;">🏆 Klar for mer vekt!</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// NAV
+function nav(name, btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='history') renderHistory();
+  if(name==='stats') renderStats();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// Init
+renderCustom(); renderSelected(); renderHistory(); renderStats();
+</script>
+</body>
+</html>
