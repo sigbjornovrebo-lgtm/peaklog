@@ -386,12 +386,12 @@ const RPE_DESC=['','Veldig lett','Lett','Moderat','Noenlunde','Middels','Litt ha
 
 // CONFIG
 const CFG = {
-  pullup: { name:'Pull-up', sub:'Klatreplanke', defaultSets:[4,3,2,2], maxReps:5, grips:null, mode:'pyramid' },
-  pushup: { name:'Push-up', sub:'Annenhvert grep', defaultSets:[20,20,16,14], maxReps:null, grips:['Bredt','Normalt','Bredt','Normalt'], mode:'plus2' }
+  pullup: { name:'Pull-up', sub:'Klatreplanke', defaultSets:[4,3,2,2], maxReps:5, grips:null, mode:'pullup' },
+  pushup: { name:'Push-up', sub:'Annenhvert grep', defaultSets:[22,20,18,16], maxReps:null, grips:['Bredt','Normalt','Bredt','Normalt'], mode:'pushup' }
 };
 
 // DB
-let db = { pu:{weight:0,sets:[4,3,2,2],history:[]}, ps:{weight:0,sets:[20,20,16,14],history:[]}, sessions:[] };
+let db = { pu:{weight:0,sets:[4,3,2,2],history:[]}, ps:{weight:0,sets:[22,20,18,16],history:[]}, sessions:[] };
 function loadDB(){ try{ const s=localStorage.getItem('peaklog5'); if(s){ const p=JSON.parse(s); db.pu=p.pu||db.pu; db.ps=p.ps||db.ps; db.sessions=p.sessions||[]; }}catch(e){} }
 function saveDB(){ try{ localStorage.setItem('peaklog5', JSON.stringify(db)); }catch(e){} }
 loadDB();
@@ -556,10 +556,10 @@ function endSession(){
 
   if(puAllDone){
     const isTop=db.pu.sets.every(s=>s>=CFG.pullup.maxReps);
-    if(!isTop) db.pu.sets=nextPyramid(db.pu.sets, CFG.pullup.maxReps);
+    if(!isTop) db.pu.sets=nextPullup(db.pu.sets, CFG.pullup.maxReps);
   }
   if(psAllDone){
-    db.ps.sets=db.ps.sets.map(s=>Math.min(s+2,50));
+    db.ps.sets=nextPushup(db.ps.sets);
   }
 
   // Save history
@@ -577,10 +577,29 @@ function endSession(){
   showMotivation(puDone, psDone);
 }
 
-function nextPyramid(sets, maxR){
+// Pull-up: 4-3-2-2 → 4-4-2-2 → 4-4-3-2 → 4-4-4-2 → 4-4-4-3 → 4-4-4-4 → 5-4-4-4
+// Find leftmost i>=1 where n[i] < n[0], increment by 1.
+// When all equal n[0], increment n[0] if below maxR.
+function nextPullup(sets, maxR){
   const n=[...sets];
-  for(let i=0;i<n.length;i++){if(n[i]<maxR){n[i]++;break;}}
+  for(let i=1;i<n.length;i++){
+    if(n[i]<n[0]){ n[i]++; return n; }
+  }
+  if(n[0]<maxR){ n[0]++; return n; }
   return n;
+}
+
+// Push-up: 22-20-18-16 → 22-20-20-16 → 22-20-20-18 → 22-20-20-20 → 22-22-20-20
+// Find leftmost i>=2 where n[i] < n[i-1], increment by 2 (capped at n[i-1]).
+// When all i>=2 equal n[1], handle i=1.
+// When all equal, increment all by 2.
+function nextPushup(sets){
+  const n=[...sets];
+  for(let i=2;i<n.length;i++){
+    if(n[i]<n[i-1]){ n[i]=Math.min(n[i]+2, n[i-1]); return n; }
+  }
+  if(n[1]<n[0]){ n[1]=Math.min(n[1]+2, n[0]); return n; }
+  return n.map(s=>s+2);
 }
 
 // ABORT
